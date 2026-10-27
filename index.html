@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hold 60: keep the grid at 60 Hz</title>
+  <meta name="description" content="You run a US power grid for one day. Keep the frequency at 60 Hz or neighborhoods go dark. Play it by hand, or write the dispatch code.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)">
+  <meta property="og:title" content="Hold 60: keep the grid at 60 Hz">
+  <meta property="og:description" content="Run a power grid for one day. Heatwaves, winter storms, a 1.8 GW AI campus. By hand or in code.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://atabeyrajabli.github.io/hold-60/">
+  <meta property="og:image" content="https://atabeyrajabli.github.io/hold-60/og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Hold 60: a frequency dial at 60 Hz above a day of grid generation">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Hold 60: keep the grid at 60 Hz">
+  <meta name="twitter:description" content="A new grid every day. Run it by hand, or write the dispatch code. No sign-up, no tracking.">
+  <meta name="twitter:image" content="https://atabeyrajabli.github.io/hold-60/og-card.png">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="src/app.js"></script>
+</head>
+<body>
+  <p id="boot-msg" class="noscript">Loading Hold 60… If this message stays, the page was opened straight from disk. Serve the folder over http instead (for example <code>python -m http.server</code>); see the README.</p>
+  <noscript><p class="noscript">Hold 60 is a game and needs JavaScript.</p></noscript>
+
+  <!-- ============ LANDING ============ -->
+  <main id="screen-landing" class="screen landing" hidden>
+    <div class="landing-inner">
+      <p class="wordmark" aria-label="Hold 60">HOLD<span>60</span></p>
+      <div class="landing-dial" id="landing-dial" aria-hidden="true"></div>
+      <p class="landing-readout"><span id="landing-hz" class="mono">60.00</span> Hz <span id="landing-status" class="landing-status">stable</span></p>
+      <h1>Keep the grid at 60&nbsp;Hz.</h1>
+      <p class="lede">You run a power grid for one day. Demand never stops moving and your power plants are slow. Fall below 59.3&nbsp;Hz and neighborhoods go dark.</p>
+      <a id="btn-daily" class="btn btn-primary btn-big daily-btn" href="#daily">Today's grid <span class="daily-tag" id="daily-tag">Daily #1</span></a>
+      <p class="daily-line" id="daily-line">One grid per day, the same for everyone</p>
+      <p class="landing-links">
+        <a href="#tutorial" id="link-tutorial">30-second tutorial</a>
+        <span aria-hidden="true">·</span>
+        <a href="#play">All five scenarios</a>
+        <span aria-hidden="true">·</span>
+        <a href="#code">Write a dispatch policy in JS</a>
+      </p>
+      <p class="landing-foot">Five hand-built days: spring, heatwave, winter storm, windless, AI boom. No sign-up, no tracking, keeps running offline once loaded.</p>
+      <!-- Source links point at the public repo. -->
+      <p class="site-links">
+        <a href="https://github.com/atabeyRajabli/hold-60" target="_blank" rel="noopener">Source</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/atabeyRajabli/hold-60#how-the-simulation-works" target="_blank" rel="noopener">How it works</a>
+        <span aria-hidden="true">·</span>
+        <a href="LICENSE" target="_blank" rel="noopener">MIT</a>
+      </p>
+    </div>
+  </main>
+
+  <!-- ============ SCENARIO PICKER ============ -->
+  <main id="screen-picker" class="screen picker" hidden>
+    <header class="picker-head">
+      <a class="wordmark small" href="#" aria-label="Hold 60 home">HOLD<span>60</span></a>
+      <h1>Pick a day</h1>
+      <p class="muted">Each day is seeded. Everyone gets the same weather, so grades are comparable.</p>
+    </header>
+    <ol id="scenario-list" class="scenario-list"></ol>
+  </main>
+
+  <!-- ============ GAME ============ -->
+  <div id="screen-game" class="screen game" hidden>
+    <header class="topbar">
+      <a class="icon-btn back" href="#play" aria-label="Back to scenarios" title="Back to scenarios">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+      </a>
+      <div class="topbar-title">
+        <span class="wordmark tiny" aria-hidden="true">HOLD<span>60</span></span>
+        <span id="game-title" class="scenario-name">Scenario</span>
+        <span id="mode-badge" class="badge" hidden>code</span>
+      </div>
+      <div class="clock mono" id="clock" aria-label="Time of day">00:00</div>
+      <div class="speed" role="group" aria-label="Simulation speed">
+        <button type="button" class="speed-btn" data-speed="0" aria-label="Pause (Space)" title="Pause (Space)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></svg>
+        </button>
+        <button type="button" class="speed-btn" data-speed="0.5" title="Half speed (4)">0.5×</button>
+        <button type="button" class="speed-btn" data-speed="1" title="Normal speed (1)">1×</button>
+        <button type="button" class="speed-btn" data-speed="2" title="Fast (2)">2×</button>
+        <button type="button" class="speed-btn" data-speed="4" title="Faster (3)">4×</button>
+      </div>
+      <div class="topbar-tools">
+        <button type="button" class="btn btn-small" id="btn-results" hidden title="Show your grade, share text and replay options">Results</button>
+        <button type="button" class="icon-btn" id="btn-sound" aria-pressed="false" aria-label="Grid hum sound" title="Grid hum (M)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="fill" d="M4 9h4l5-4v14l-5-4H4z" /><path id="sound-waves" d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 6.5c2.7 3 2.7 8 0 11" /></svg>
+        </button>
+        <button type="button" class="icon-btn" id="btn-theme" aria-label="Toggle light or dark theme" title="Theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" /><path class="fill" d="M12 4.5a7.5 7.5 0 0 1 0 15z" /></svg>
+        </button>
+        <button type="button" class="icon-btn" id="btn-help" aria-label="Keyboard shortcuts and help" title="Help (?)">?</button>
+      </div>
+    </header>
+
+    <!-- a friend's score, when the page was opened from a shared daily link -->
+    <div class="challenge" id="challenge" role="status" hidden>
+      <span id="challenge-text"></span>
+      <a id="challenge-tut" href="#tutorial" hidden>New here? 30-second tutorial first</a>
+      <button type="button" class="x" id="challenge-x" aria-label="Dismiss">×</button>
+    </div>
+
+    <!-- sticky compact header on phones once the big dial scrolls away: dial, readout, day chart -->
+    <div class="mini-hz" id="mini-hz" aria-hidden="true">
+      <div class="mini-dial" id="mini-dial"></div>
+      <div class="mini-read">
+        <span class="mini-hzline"><span class="mini-dot"></span><b class="mono" id="mini-hz-val">60.00</b> Hz</span>
+        <span class="mini-sub"><span id="mini-imb" class="mono">±0 MW</span> · <span id="mini-clock" class="mono">00:00</span></span>
+      </div>
+      <canvas id="mini-chart" class="mini-chart"></canvas>
+    </div>
+
+    <div class="game-grid">
+      <section class="panel panel-dial" aria-label="Grid frequency">
+        <div class="dial-wrap" id="dial"></div>
+        <div class="readout">
+          <div class="hz"><span id="hz" class="mono">60.00</span><small>Hz</small></div>
+          <div class="status" id="status" role="status" aria-live="polite">Stable</div>
+        </div>
+        <dl class="stats">
+          <div><dt>Demand</dt><dd><span id="st-demand" class="mono">0</span> <small>MW</small></dd></div>
+          <div><dt>Generation</dt><dd><span id="st-gen" class="mono">0</span> <small>MW</small></dd></div>
+          <div class="imb"><dt title="Generation minus demand, including the battery">Gen − demand</dt><dd><span id="st-imb" class="mono">0</span> <small>MW</small></dd></div>
+          <div><dt title="The real score so far: fuel, start-ups, wear and DR + $10,000 per MWh of blackout + $100 per tonne of CO₂. Lower is better.">Score so far</dt><dd><span id="st-cost" class="mono">$0</span></dd></div>
+          <div><dt>CO₂</dt><dd><span id="st-co2" class="mono">0</span> <small>t</small></dd></div>
+          <div><dt>In the dark</dt><dd><span id="st-dark" class="mono">0</span> <small>MWh</small></dd></div>
+        </dl>
+        <div class="town" aria-label="Customers with power">
+          <div class="town-label"><span>Neighborhoods</span><span id="town-pct" class="mono">100% lit</span></div>
+          <div class="houses" id="houses"></div>
+        </div>
+        <ol class="feed" id="feed" aria-label="Event log" aria-live="polite"></ol>
+      </section>
+
+      <section class="panel panel-chart" aria-label="The day so far">
+        <div class="panel-head">
+          <h2>Today</h2>
+          <ul class="legend" id="legend"></ul>
+        </div>
+        <div class="chart-wrap"><canvas id="chart" role="img" aria-label="Chart of demand and generation over the day"></canvas></div>
+      </section>
+
+      <section class="panel panel-controls" id="panel-controls" aria-label="Your power plants">
+        <div class="panel-head">
+          <h2>Your plants</h2>
+          <span class="autopilot" id="autopilot" hidden>Autopilot is flying the day <button type="button" class="btn btn-small" id="btn-takeover">Take over</button></span>
+          <span class="muted small" id="plants-hint">Drag to set output. Plants ramp, they don't jump.</span>
+        </div>
+        <div id="controls" class="controls"></div>
+      </section>
+
+      <section class="panel panel-code" id="panel-code" aria-label="Dispatch policy editor" hidden>
+        <div class="panel-head">
+          <h2>dispatch.js</h2>
+          <div class="code-actions">
+            <label class="sr-only" for="load-baseline">Load an example</label>
+            <select id="load-baseline" class="select">
+              <option value="">Load example…</option>
+              <option value="starter">Starter template</option>
+            </select>
+            <button type="button" class="btn btn-primary btn-small" id="btn-run-watch" title="Run and watch (Ctrl+Enter)">▶ Run and watch <kbd>Ctrl+Enter</kbd></button>
+            <button type="button" class="btn btn-small" id="btn-run-fast">Run whole day instantly</button>
+          </div>
+        </div>
+        <div class="editor">
+          <pre class="gutter mono" id="gutter" aria-hidden="true">1</pre>
+          <textarea id="code" class="mono" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Your dispatch function"></textarea>
+        </div>
+        <div class="code-run"><span class="muted small" id="run-progress"></span></div>
+        <pre class="console mono" id="console" aria-live="polite"></pre>
+        <div id="compare" class="compare"></div>
+        <details class="api">
+          <summary>API cheat sheet</summary>
+          <div class="api-body">
+            <p>Called once per simulated minute (1,440 times). Return setpoints in MW. Anything you leave out keeps its last value. Your score is societal cost: fuel + start-ups + $10,000 per MWh of blackout + $100 per tonne of CO₂ (lower is better). Unknown keys and non-numbers are ignored, with a warning in the console below naming the key.</p>
+<pre class="mono">return {
+  coal: 1200, gas: 900, peaker: 0,   // thermal targets (units start/stop automatically)
+  commit: { gas: 4 },                // optional: keep at least N units online
+  wind: 3000, solar: 3500,           // curtailment caps
+  battery: -300,                     // + discharge, - charge (auto frequency response adds on top)
+  dr: true                           // call demand response (limited calls)
+}</pre>
+            <p><b>state</b>: <code>t</code> (minute 0..1439), <code>frequency</code>, <code>deviation</code>, <code>demand</code>, <code>generation</code>, <code>imbalance</code>, <code>fleets.{nuclear,coal,gas,peaker}</code> (<code>output, online, starting, capacity, onlineMW, unitMW, rampPerMin, startMin, minFrac, cost, co2</code>), <code>fleets.{wind,solar}</code> (<code>available, output, capacity</code>), <code>fleets.battery</code> (<code>soc, socFrac, mwh, mw</code>), <code>dr</code> (<code>callsLeft, active, pending</code>), <code>forecast.{demand,wind,solar}[minute]</code>.</p>
+            <p><b>memory</b> is yours to keep anything between calls. <code>console.log</code> works. Each call gets 250&nbsp;ms; loop forever and the run stops, not the page.</p>
+          </div>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <!-- ============ COACH / TOASTS ============ -->
+  <div id="coach" class="coach" role="dialog" aria-live="polite" hidden>
+    <p id="coach-text"></p>
+    <div class="coach-actions"><button type="button" class="btn btn-small" id="coach-btn2" hidden></button>
+      <button type="button" class="btn btn-primary btn-small" id="coach-btn" hidden>OK</button></div>
+  </div>
+  <div id="hint" class="hint" role="status" aria-live="polite" hidden></div>
+
+  <!-- ============ RESULTS ============ -->
+  <dialog id="results" class="results" aria-labelledby="res-title">
+    <form method="dialog" class="results-inner">
+      <p class="muted small" id="res-kicker">Day complete</p>
+      <h2 id="res-title">Mild Spring Day</h2>
+      <div class="grade-row">
+        <div class="grade" id="res-grade">A</div>
+        <p class="grade-copy" id="res-copy"></p>
+      </div>
+      <div class="timeline" id="res-timeline" aria-label="Hour by hour: green stable, yellow strained, red load shed"></div>
+      <div class="timeline-axis mono"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+      <dl class="res-stats" id="res-stats"></dl>
+      <p class="res-daily" id="res-daily" hidden></p>
+      <div class="res-compare" id="res-compare"></div>
+      <aside class="real-card" id="res-real" hidden>
+        <h3 id="res-real-title"></h3>
+        <p id="res-real-text"></p>
+      </aside>
+      <pre class="share-preview mono" id="share-preview"></pre>
+      <div class="res-actions">
+        <button type="button" class="btn btn-primary" id="btn-share">Copy result</button>
+        <button type="button" class="btn" id="btn-copy" hidden>Copy text</button>
+        <button type="button" class="btn" id="btn-again">Play again</button>
+        <button type="button" class="btn" id="btn-next">Next day →</button>
+      </div>
+      <p class="res-foot"><a href="#code" id="res-code-link">Think you can automate it? Write the dispatch code →</a></p>
+      <p class="site-links in-results">
+        <a href="https://github.com/atabeyRajabli/hold-60" target="_blank" rel="noopener">Source</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/atabeyRajabli/hold-60#how-the-simulation-works" target="_blank" rel="noopener">How it works</a>
+        <span aria-hidden="true">·</span>
+        <a href="LICENSE" target="_blank" rel="noopener">MIT</a>
+      </p>
+      <button class="icon-btn close" value="close" aria-label="Close">×</button>
+    </form>
+  </dialog>
+
+  <!-- ============ HELP ============ -->
+  <dialog id="help" class="help" aria-labelledby="help-title">
+    <form method="dialog" class="help-inner">
+      <h2 id="help-title">How the grid works</h2>
+      <p>Power has to be made the instant it is used. When generation falls short of demand, the spinning machines on the grid slow down and frequency drops below 60&nbsp;Hz. Too much generation and it rises.</p>
+      <ul class="help-list">
+        <li><b>Below 59.3 Hz</b> load is shed, 5% of customers at a time. (59.3 Hz is ERCOT's first automatic stage; in real life rolling blackouts are usually ordered by operators.)</li>
+        <li><b>Above 60.5 Hz</b> a generator trips. That is a game rule to punish overshooting; real plants ride through much higher frequencies. From 60.3 Hz the dial counts down the headroom.</li>
+        <li><b>You are the governor.</b> There is no automatic generator response, so frequency keeps drifting until you act. Only the battery reacts by itself, until it runs empty or full.</li>
+        <li><b>Plants are slow.</b> Hot-start times: coal 4 h, gas 1 h, peakers 10 min. Nuclear doesn't move.</li>
+        <li><b>Score</b> = fuel + start-ups + $10,000 per MWh of blackout + $100 per tonne of CO₂. Lower is better. Any blackout caps your grade; otherwise the grade compares your score with par. With carbon priced in, gas costs less per MWh than coal.</li>
+      </ul>
+      <h3>Keys</h3>
+      <table class="keys">
+        <tr><td><kbd>Space</kbd></td><td>pause / resume</td><td><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></td><td>speed 1× 2× 4× 0.5×</td></tr>
+        <tr><td><kbd>Q</kbd>/<kbd>A</kbd></td><td>coal up / down</td><td><kbd>W</kbd>/<kbd>S</kbd></td><td>gas up / down</td></tr>
+        <tr><td><kbd>E</kbd>/<kbd>D</kbd></td><td>peakers up / down</td><td><kbd>R</kbd>/<kbd>F</kbd></td><td>battery out / in</td></tr>
+        <tr><td><kbd>T</kbd>/<kbd>G</kbd></td><td>solar cap up / down</td><td><kbd>Y</kbd>/<kbd>H</kbd></td><td>wind cap up / down</td></tr>
+        <tr><td><kbd>X</kbd></td><td>call demand response</td><td><kbd>M</kbd></td><td>grid hum on / off</td></tr>
+      </table>
+      <p class="muted small">The first blackout or generator trip of a run pauses the clock once, with the reason. A daily run is saved every game hour, so a reload offers to resume it. Hold <kbd>Shift</kbd> for fine steps. Sliders also work with arrow keys when focused.</p>
+      <button class="icon-btn close" value="close" aria-label="Close">×</button>
+    </form>
+  </dialog>
+</body>
+</html>

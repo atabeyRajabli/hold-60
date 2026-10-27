@@ -1,0 +1,12 @@
+{
+  "name": "hold-60",
+  "version": "1.3.0",
+  "private": true,
+  "description": "Keep a power grid at 60 Hz for one day. Browser game, no build step.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python -m http.server 8060"
+  }
+}
